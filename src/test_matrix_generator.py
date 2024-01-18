@@ -1,94 +1,106 @@
 import pandas as pd
-from matplotlib import pyplot as plt
 import itertools
 import numpy as np
 import datetime as dt
 
-
-
-
 class TestMatrix():
 
-    def __init__(self, param_lists, ttm, column_names = None) -> None:
+    def __init__(self, identifier, param_lists, ttm,
+                 column_names = None) -> None:
+        self.name = identifier
+        
         self.param_lists = param_lists
         self.ttm = ttm
         self.column_names = column_names
 
-        self.df = self.generate_TM()
+        self.df = self.generate_TM() # Create data frame
 
         
-    def generate_TM(self):
+    def generate_TM(self): # Dataframe is a combination of values being varied
         comb = [item for item in itertools.product(*self.param_lists)]
         return pd.DataFrame(comb, columns=self.column_names)
     
-    def get_changed_indices(self):
+    def get_changed_indices(self): # Get values being changed to get time to change variables
+        # This does some wacky dataframe manipulation
         return self.df.ne(self.df.shift()).apply(lambda x: x.index[x].tolist())
     
-    def get_timestamps(self, rem_lst_add_first = True):
+    def get_timestamps(self): # Evaluate intervals and timestamps
 
         intervs = []
         
         d_ind = self.get_changed_indices()
         # print(d_ind)
-        mask_ref = np.full(self.ttm.size, False)
+        mask_ref = np.full(self.ttm.size, False) # comparison class
 
         for key in range(self.df.shape[0]):
             mask = np.copy(mask_ref)
 
             for i in range(len(d_ind)):
 
-                if key in d_ind.iloc[i]: mask[i] = True
+                if key in d_ind.iloc[i]: mask[i] = True # Made in a modular way for future changes
                 
             if key != 0:
                 intervs.append(np.max(self.ttm[mask]))
-            else:
-                intervs.append(self.ttm[-1])
 
-        if rem_lst_add_first:
-            intervs = intervs[:-1]
-            intervs.insert(0,0)
-        # print(intervs)
-        time_stamps = np.cumsum(intervs)
-        time_stamps= [str(dt.timedelta(seconds = int(n))) for n in time_stamps]
-        # time_stamps = pd.to_datetime(time_stamps_str)
+            else: # Used as technically all variables change at the first row
+                intervs.append(self.ttm[-1]) # So we default to last value in ttm
+
+        
+        time_stamps = np.cumsum(intervs) - self.ttm[-1] # accumlate values and remove bias term being ttm[-1]
+        
+        time_stamps = [str(dt.timedelta(seconds = int(n))) for n in time_stamps]
+        
         return intervs, time_stamps
 
-    def compile_dataset(self, rem_lst_add_first = True):
-        intervs, time_stamps = self.get_timestamps(rem_lst_add_first)
+    def compile_dataset(self):
+        intervs, time_stamps = self.get_timestamps()
         self.df['period_s'] = intervs
         self.df['timestamp_hh-mm-ss'] = time_stamps
 
         return self.df
             
 
-n_factors = 5
 
-elev_def = [-10, 0, 10, 20]
-prop_config =  ["L/cw-R/cw" , "L/cw-R/ccw" , "L/ccw-R/cw"]
-AoA = [-5, 0 , 5, 10]
-fs_vel = [0, 20, 40]
-adv_ratio = [0, 1.6, 2, 2.5]
+n_factors = 5 # Not used just for keepsake
+
+elev_def = [-10., 0., 10., 20.] # Elevator Deflection in deg
+
+prop_config =  ["L/cw-R/cw" ,
+                "L/cw-R/ccw" ,
+                "L/ccw-R/cw"] # Propellor orientation combos
+
+AoA = [-5., 0. , 5., 10.] # Angle of Attack in deg
+
+fs_vel = [0., 20., 40.] # Freestream Velocity in m/s
+
+adv_ratio = [0, 1.6, 2.5] # Yoari suggestion
+# adv_ratio = [0, 1.6, 2, 2.5] # Advance Ratio
 
 factor_group = [elev_def,
              prop_config,
              fs_vel,
              adv_ratio,
-             AoA]
+             AoA] # Order defines order of change in combinations produces
 
 base_col_names = ["elev_def",
              "prop_config",
              "fs_vel",
              "adv_ratio",
-             "AoA"]
+             "AoA"] # Used for csv/dataframe headers
 
-ttm_approx = np.array([300,300,10,10,10])
+ttm_approx = np.array([600,600,10,10,10])
 
-TM_1 = TestMatrix(factor_group,ttm_approx,base_col_names)
+identifier = "test_matrix_v1"
+TM_1 = TestMatrix(identifier,factor_group,ttm_approx,base_col_names)
 
 final_data = TM_1.compile_dataset()
-final_data.to_csv("test_matrix_v1.csv",index = True)
-# print(d_ind)
-# print(len(d_ind))
-# print(t_s)
+final_data.to_csv(f"{TM_1.name}.csv",index = True)
+
+with open(f"{TM_1.name}_table.txt", 'w') as file:
+    file.write(final_data.to_latex(index=False,
+                    formatters={"name": str.upper},
+                    float_format="{:.1f}".format,
+    ))
+
 
 
