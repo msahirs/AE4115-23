@@ -24,12 +24,11 @@ class TestMatrix():
         # This does some wacky dataframe manipulation
         return self.df.ne(self.df.shift()).apply(lambda x: x.index[x].tolist())
     
-    def cull_0fs(self,tol = 1e-4):
+    def cull(self,tol = 1e-4):
         
         cull_indices = []
 
-        
-        for i, val in self.df.iterrows():
+        for i, val in self.df.iterrows(): # Remove angle of attack variation with zero fs
             if abs(val.iloc[2]) < tol and ((-tol < abs(val.iloc[-1]) - 5 < tol) or (-tol < val.iloc[-1]-10 < tol)):
                 cull_indices.append(i)
 
@@ -38,16 +37,18 @@ class TestMatrix():
 
         cull_indices = []
 
-        for i, val in self.df.iterrows():
+        for i, val in self.df.iterrows(): #Only test one prop config for free stream variation
             if not(val.iloc[1] == "L/cw-R/cw") and (-tol < abs(val.iloc[2]) < tol) :
                 cull_indices.append(i)
+
+        print(self.df.iloc[cull_indices])
 
         self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
         self.d_ind = self.get_changed_indices()
 
         cull_indices = []
 
-        for i, val in self.df.iterrows():
+        for i, val in self.df.iterrows(): # test zero fs and zero adv ratio for one elev deflect
             if not(-tol < val.iloc[0] + 10 < tol) and (-tol < abs(val.iloc[2]) < tol) and (-tol < abs(val.iloc[3]) < tol) :
                 cull_indices.append(i)
 
@@ -56,14 +57,14 @@ class TestMatrix():
 
         cull_indices = []
 
-        for i, val in self.df.iterrows():
+        for i, val in self.df.iterrows(): #Only test 0 advance ratios for just one prop config
             if (-tol < val.iloc[3] < tol) and not(val.iloc[1] == "L/cw-R/cw") :
                 cull_indices.append(i)
 
         self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
         self.d_ind = self.get_changed_indices()
 
-        print(self.df)
+        # print(self.df)
 
     def get_timestamps(self): # Evaluate intervals and timestamps
 
@@ -108,7 +109,7 @@ prop_config =  ["L/cw-R/cw" ,
                 "L/ccw-R/cw"] # Propellor orientation combos
 
 # AoA = [-5., 0. , 5.] # Angle of Attack in deg
-AoA = [-5., 0. , 5.,] # Angle of Attack in deg
+AoA = [-5., 0. , 5.] # Angle of Attack in deg
 
 fs_vel = [0., 20., 40.] # Freestream Velocity in m/s
 
@@ -132,7 +133,7 @@ ttm_approx = np.array([600,600,10,10,10])
 identifier = "test_matrix_v1"
 TM_1 = TestMatrix(identifier,factor_group,ttm_approx,base_col_names)
 
-TM_1.cull_0fs()
+TM_1.cull()
 
 
 # raise "error"
