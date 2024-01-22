@@ -3,6 +3,17 @@ import itertools
 import numpy as np
 import datetime as dt
 
+def partition(values, indices):
+    idx = 0
+
+    for index in indices:
+        sublist = []
+        while idx < len(values) and values[idx] < index:
+            sublist.append(values[idx])
+            idx += 1
+        if sublist:
+            yield sublist
+
 class TestMatrix():
 
     def __init__(self, identifier, param_lists, ttm,
@@ -24,7 +35,7 @@ class TestMatrix():
         # This does some wacky dataframe manipulation
         return self.df.ne(self.df.shift()).apply(lambda x: x.index[x].tolist())
     
-    def cull(self,tol = 1e-4):
+    def cull(self,tol = 1e-3):
         
         cull_indices = []
 
@@ -41,7 +52,7 @@ class TestMatrix():
             if not(val.iloc[1] == "L/cw-R/cw") and (-tol < abs(val.iloc[2]) < tol) :
                 cull_indices.append(i)
 
-        print(self.df.iloc[cull_indices])
+        # print(self.df.iloc[cull_indices])
 
         self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
         self.d_ind = self.get_changed_indices()
@@ -64,7 +75,45 @@ class TestMatrix():
         self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
         self.d_ind = self.get_changed_indices()
 
+        cull_indices = []
+
+        for i, val in self.df.iterrows(): # Change all but one adv ratio of 0 to prop off
+            if (-tol < val.iloc[3] < tol) and not(-tol < val.iloc[0] + 10 < tol and -tol < val.iloc[2] < tol) :
+                cull_indices.append(i)
+        
+
+        self.df.loc[cull_indices, ['prop_config']] = 'OFF'
         # print(self.df)
+
+        # Collect and concantenate "OFF" to between propellor changes per elevator deflection
+        # print(len(self.d_ind[0]))
+        sort_mask = self.d_ind.iloc[0] + [self.df.shape[0]] # Add last element to close off boundary
+        split_data = list(partition(cull_indices,sort_mask))
+        prop_split = list(partition(self.d_ind.iloc[1],sort_mask))
+        # print(prop_split)
+        # print(split_data)
+        conc_net = []
+        for i, values in enumerate(split_data):
+            # print(prop_split[i][1])
+            # print(self.df[prop_split[i][0]:prop_split[i][1]].drop(index=values))
+            # print(self.df[prop_split[i][1]:sort_mask[i+1]])
+            conc_net.append(self.df[prop_split[i][0]:prop_split[i][1]].drop(index=values))
+            conc_net.append(self.df.iloc[values])
+            conc_net.append(self.df[prop_split[i][1]:sort_mask[i+1]])
+            
+        self.df = pd.concat(conc_net,ignore_index=True)
+        self.d_ind = self.get_changed_indices()
+        # print(final_df)
+        
+
+        # for start_ind in range(len(self.d_ind.iloc[0])):
+        #     self.df.iloc[cull_indices, ['prop_config']]
+        #     pass
+
+
+        # self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
+        
+
 
     def get_timestamps(self): # Evaluate intervals and timestamps
 
