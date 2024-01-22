@@ -103,7 +103,21 @@ class TestMatrix():
             
         self.df = pd.concat(conc_net,ignore_index=True)
         self.d_ind = self.get_changed_indices()
-        # print(final_df)
+
+        # sort according to yoari's suggestion:
+        b_1_sort = {"L/cw-R/cw":0 , "L/cw-R/ccw":1 , "OFF":2, "L/ccw-R/cw":3}
+        b_1 = self.df[sort_mask[0]:sort_mask[1]].sort_values(by=['prop_config'], key=lambda x: x.map(b_1_sort))
+        # print(self.df.sort_values())
+        b_2_sort = {"L/ccw-R/cw":0,"L/cw-R/cw":1, "OFF":2,
+                "L/cw-R/ccw":3}
+        b_2 = self.df[sort_mask[1]:sort_mask[2]].sort_values(by=['prop_config'], key=lambda x: x.map(b_2_sort))
+        b_3_sort ={"L/cw-R/ccw" :0,
+                "L/cw-R/cw":1 ,
+                "L/ccw-R/cw":2, "OFF":3}
+        b_3 = self.df[sort_mask[2]:sort_mask[3]].sort_values(by=['prop_config'], key=lambda x: x.map(b_3_sort))
+        
+        self.df = pd.concat([b_1,b_2,b_3],ignore_index=True)
+        self.d_ind = self.get_changed_indices()
         
 
         # for start_ind in range(len(self.d_ind.iloc[0])):
@@ -112,8 +126,6 @@ class TestMatrix():
 
 
         # self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
-        
-
 
     def get_timestamps(self): # Evaluate intervals and timestamps
 
