@@ -37,14 +37,14 @@ class TestMatrix():
     
     def cull(self,tol = 1e-3):
         
-        cull_indices = []
+        # cull_indices = []
 
-        for i, val in self.df.iterrows(): # Remove angle of attack variation with zero fs
-            if abs(val.iloc[2]) < tol and ((-tol < abs(val.iloc[-1]) - 5 < tol) or (-tol < val.iloc[-1]-10 < tol)):
-                cull_indices.append(i)
+        # for i, val in self.df.iterrows(): # Remove angle of attack variation with zero fs
+        #     if abs(val.iloc[2]) < tol and ((-tol < abs(val.iloc[-1]) - 5 < tol) or (-tol < val.iloc[-1]-10 < tol)):
+        #         cull_indices.append(i)
 
-        self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
-        self.d_ind = self.get_changed_indices()
+        # self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
+        # self.d_ind = self.get_changed_indices()
 
         cull_indices = []
 
@@ -59,7 +59,7 @@ class TestMatrix():
 
         cull_indices = []
 
-        for i, val in self.df.iterrows(): # test zero fs and zero adv ratio for one elev deflect
+        for i, val in self.df.iterrows(): #  zero adv ratio for one elev deflect
             if not(-tol < val.iloc[0] + 10 < tol) and (-tol < abs(val.iloc[2]) < tol) and (-tol < abs(val.iloc[3]) < tol) :
                 cull_indices.append(i)
 
@@ -86,12 +86,11 @@ class TestMatrix():
         # print(self.df)
 
         # Collect and concantenate "OFF" to between propellor changes per elevator deflection
-        # print(len(self.d_ind[0]))
+        
         sort_mask = self.d_ind.iloc[0] + [self.df.shape[0]] # Add last element to close off boundary
         split_data = list(partition(cull_indices,sort_mask))
         prop_split = list(partition(self.d_ind.iloc[1],sort_mask))
-        # print(prop_split)
-        # print(split_data)
+
         conc_net = []
         for i, values in enumerate(split_data):
             # print(prop_split[i][1])
@@ -107,7 +106,7 @@ class TestMatrix():
         # sort according to yoari's suggestion:
         b_1_sort = {"L/cw-R/cw":0 , "L/cw-R/ccw":1 , "OFF":2, "L/ccw-R/cw":3}
         b_1 = self.df[sort_mask[0]:sort_mask[1]].sort_values(by=['prop_config'], key=lambda x: x.map(b_1_sort))
-        # print(self.df.sort_values())
+        
         b_2_sort = {"L/ccw-R/cw":0,"L/cw-R/cw":1, "OFF":2,
                 "L/cw-R/ccw":3}
         b_2 = self.df[sort_mask[1]:sort_mask[2]].sort_values(by=['prop_config'], key=lambda x: x.map(b_2_sort))
@@ -119,13 +118,6 @@ class TestMatrix():
         self.df = pd.concat([b_1,b_2,b_3],ignore_index=True)
         self.d_ind = self.get_changed_indices()
         
-
-        # for start_ind in range(len(self.d_ind.iloc[0])):
-        #     self.df.iloc[cull_indices, ['prop_config']]
-        #     pass
-
-
-        # self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
 
     def get_timestamps(self): # Evaluate intervals and timestamps
 
@@ -157,8 +149,14 @@ class TestMatrix():
         intervs, time_stamps = self.get_timestamps()
         self.df['period_s'] = intervs
         self.df['timestamp_hh-mm-ss'] = time_stamps
+        print(self.df['adv_ratio'].astype(str) + " ("+ self.get_rps_from_J_fs().map('{:,.1f}'.format) + ") ")
 
+        # print(self.get_rps_from_J_fs())
         return self.df
+    
+
+    def get_rps_from_J_fs(self, prop_len = 0.07):
+        return (self.df["fs_vel"]/(self.df["adv_ratio"] * prop_len)).replace([np.inf,np.nan],0)
             
 n_factors = 5 # Not used just for keepsake
 
@@ -170,7 +168,7 @@ prop_config =  ["L/cw-R/cw" ,
                 "L/ccw-R/cw"] # Propellor orientation combos
 
 # AoA = [-5., 0. , 5.] # Angle of Attack in deg
-AoA = [-5., 0. , 5.] # Angle of Attack in deg
+AoA = [-5., 0. , 5.,] # Angle of Attack in deg
 
 fs_vel = [0., 20., 40.] # Freestream Velocity in m/s
 
@@ -189,9 +187,9 @@ base_col_names = ["elev_def",
              "adv_ratio",
              "AoA"] # Used for csv/dataframe headers
 
-ttm_approx = np.array([600,600,10,10,10])
+ttm_approx = np.array([600,600,15,15,15])
 
-identifier = "test_matrix_v1"
+identifier = "test_matrix_updated"
 TM_1 = TestMatrix(identifier,factor_group,ttm_approx,base_col_names)
 
 TM_1.cull()
@@ -203,7 +201,7 @@ final_data = TM_1.compile_dataset()
 final_data.to_csv(f"{TM_1.name}.csv",index = True)
 
 with open(f"{TM_1.name}_table.txt", 'w') as file:
-    file.write(final_data.to_latex(index=False,
+    file.write(final_data.to_latex(index=True,
                     formatters={"name": str.upper},
                     float_format="{:.1f}".format,
     ))
