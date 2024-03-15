@@ -37,14 +37,14 @@ class TestMatrix():
     
     def cull(self,tol = 1e-3):
         
-        # cull_indices = []
+        cull_indices = []
 
-        # for i, val in self.df.iterrows(): # Remove angle of attack variation with zero fs
-        #     if abs(val.iloc[2]) < tol and ((-tol < abs(val.iloc[-1]) - 5 < tol) or (-tol < val.iloc[-1]-10 < tol)):
-        #         cull_indices.append(i)
+        for i, val in self.df.iterrows(): # Remove angle of attack variation with zero fs
+            if abs(val.iloc[2]) < tol and ((-tol < abs(val.iloc[-1]) - 5 < tol) or (-tol < val.iloc[-1]-10 < tol)):
+                cull_indices.append(i)
 
-        # self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
-        # self.d_ind = self.get_changed_indices()
+        self.df = self.df.drop(index=cull_indices).reset_index(drop=True)
+        self.d_ind = self.get_changed_indices()
 
         cull_indices = []
 
@@ -59,7 +59,7 @@ class TestMatrix():
 
         cull_indices = []
 
-        for i, val in self.df.iterrows(): #  zero adv ratio for one elev deflect
+        for i, val in self.df.iterrows(): # test zero fs and zero adv ratio for one elev deflect
             if not(-tol < val.iloc[0] + 10 < tol) and (-tol < abs(val.iloc[2]) < tol) and (-tol < abs(val.iloc[3]) < tol) :
                 cull_indices.append(i)
 
@@ -149,13 +149,13 @@ class TestMatrix():
         intervs, time_stamps = self.get_timestamps()
         self.df['period_s'] = intervs
         self.df['timestamp_hh-mm-ss'] = time_stamps
-        print(self.df['adv_ratio'].astype(str) + " ("+ self.get_rps_from_J_fs().map('{:,.1f}'.format) + ") ")
+        self.df['adv_ratio'] = self.df['adv_ratio'].astype(str) + " ("+ self.get_rps_from_J_fs().map('{:,.1f}'.format) + ") "
 
         # print(self.get_rps_from_J_fs())
         return self.df
     
 
-    def get_rps_from_J_fs(self, prop_len = 0.07):
+    def get_rps_from_J_fs(self, prop_len = 0.2032):
         return (self.df["fs_vel"]/(self.df["adv_ratio"] * prop_len)).replace([np.inf,np.nan],0)
             
 n_factors = 5 # Not used just for keepsake
@@ -165,7 +165,7 @@ elev_def = [-10., 0., 10.] # Elevator Deflection in deg
 
 prop_config =  ["L/cw-R/cw" ,
                 "L/cw-R/ccw" ,
-                "L/ccw-R/cw"] # Propellor orientation combos
+                "L/ccw-R/cw", "OFF"] # Propellor orientation combos
 
 # AoA = [-5., 0. , 5.] # Angle of Attack in deg
 AoA = [-5., 0. , 5.,] # Angle of Attack in deg
@@ -189,10 +189,10 @@ base_col_names = ["elev_def",
 
 ttm_approx = np.array([600,600,15,15,15])
 
-identifier = "test_matrix_updated"
+identifier = "test_matrix_bad"
 TM_1 = TestMatrix(identifier,factor_group,ttm_approx,base_col_names)
 
-TM_1.cull()
+# TM_1.cull()
 
 
 # raise "error"
