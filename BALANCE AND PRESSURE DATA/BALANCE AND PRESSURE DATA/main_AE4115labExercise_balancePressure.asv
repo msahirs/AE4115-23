@@ -9,8 +9,8 @@ close all
 clc
 
 %% Inputs
-
 % define root path on disk where data is stored
+%diskPath = './DATA';
 diskPath = './Group25';
 
 % get indices balance and pressure data files
@@ -24,17 +24,62 @@ diskPath = './Group25';
 % structure and these must start with a letter, so you will need to replace
 % the first character with a letter. For the + and - signs this has already
 % been implemented.
-fn_BAL = {'BAL/raw_test_15.txt'};
+%fn_BAL = {'BAL/raw_proponzerodef.txt'};
+fn_BAL = {'BAL/raw_test_29.txt', 'BAL/raw_test_30.txt'};
+
+% Starting index for extension
+start_index = 29; % Starting index from which to extend
+end_index = 88;   % Ending index
+
+% Numbers to skip
+skip_numbers = [58, 69];
+
+% Initialize extended filenames
+extended_filenames = cell(1, end_index - start_index + 1 - numel(skip_numbers));
+
+% Extend filenames from start_index to end_index excluding skip_numbers
+counter = 1;
+for i = start_index:end_index
+    if any(i == skip_numbers)
+        continue; % Skip this number
+    end
+    filename = sprintf('BAL/raw_test_%d.txt', i);
+    extended_filenames{counter} = filename;
+    counter = counter + 1;
+end
+
+% Concatenate with existing filenames
+%extended_filenames = [fn_BAL, extended_filenames];
+fn_BAL=extended_filenames;
 
 % filename(s) of the zero-measurement (tare) data files. Define an entry
 % per raw data files. In case multiple zero-measurements are available for
 % a datapoint, then add a structure with the filenames of the zero 
 % measurements at the index of that datapoint.
-fn0 = {'BAL/zer_ 20240306-121817.txt'}; 
-   
+%fn0 = {'BAL/zer_ 20220216-085611.txt'}; 
+fn0 = {'BAL/zer_ 20240306-131745.txt ' ,'BAL/zer_ 20240306-121817.txt '};
+
+x = 28; % Number of times to repeat the first filename
+y = 30; % Number of times to repeat the second filename
+
+% Extract the filenames
+filename1 = fn0{1};
+filename2 = fn0{2};
+
+% Repeat filenames
+extended_filenames = cell(1, x + y);
+for i = 1:x
+    extended_filenames{i} = filename1;
+end
+for i = x+1:x+y
+    extended_filenames{i} = filename2;
+end
+
+fn0=extended_filenames;
+
 % filenames of the pressure data files (same comments apply as for balance 
 % data files)
-fn_PRS = {'PRESSURE/raw__-10_corot_15_old.txt'};
+fn_PRS = {'PRESSURE/raw_test_29.txt'};
    
 % wing geometry
 b     = 1.4*cosd(4); % span [m]
@@ -64,10 +109,18 @@ PRS = PRS_process(diskPath,fn_PRS,idxP);
 BAL = BAL_process(diskPath,fn_BAL,fn0,idxB,D,S,b,c,XmRefB,XmRefM,dAoA,dAoS,modelType,modelPos,testSec,PRS);
 
 %% Write your code here to apply the corrections and visualize the data
-
+%Example data for one test:
+BAL.windOn.test_88;
 % example of how to access balance data (adapt the names of the fields of
 % the structure to your data)
 figure
-plot(BAL.windOn.proponzerodef.AoA,BAL.windOn.proponzerodef.CL,'*b')
+%plot(BAL.windOn.proponzerodef.AoA,BAL.windOn.proponzerodef.CL,'*b')
+%plot(BAL.windOn.test_37.AoA,BAL.windOn.test_37.CMpitch,'*b')
+
+%Example plot for V=40 [m/s], el_def=-10 [deg], J = 1.6, aoa=[-5, 0, 5]
+cm_pitch = [BAL.windOn.test_37.CMpitch,BAL.windOn.test_36.CMpitch,BAL.windOn.test_35.CMpitch]
+aoa = [BAL.windOn.test_37.AoA,BAL.windOn.test_36.AoA,BAL.windOn.test_35.AoA]
+
+plot(aoa, cm_pitch, '-*b')
 
 

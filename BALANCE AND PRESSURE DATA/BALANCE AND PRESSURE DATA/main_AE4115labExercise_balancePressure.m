@@ -49,7 +49,7 @@ for i = start_index:end_index
 end
 
 % Concatenate with existing filenames
-extended_filenames = [fn_BAL, extended_filenames];
+%extended_filenames = [fn_BAL, extended_filenames];
 fn_BAL=extended_filenames;
 
 % filename(s) of the zero-measurement (tare) data files. Define an entry
@@ -59,7 +59,7 @@ fn_BAL=extended_filenames;
 %fn0 = {'BAL/zer_ 20220216-085611.txt'}; 
 fn0 = {'BAL/zer_ 20240306-131745.txt ' ,'BAL/zer_ 20240306-121817.txt '};
 
-x = 30; % Number of times to repeat the first filename
+x = 28; % Number of times to repeat the first filename
 y = 30; % Number of times to repeat the second filename
 
 % Extract the filenames
@@ -109,11 +109,18 @@ PRS = PRS_process(diskPath,fn_PRS,idxP);
 BAL = BAL_process(diskPath,fn_BAL,fn0,idxB,D,S,b,c,XmRefB,XmRefM,dAoA,dAoS,modelType,modelPos,testSec,PRS);
 
 %% Write your code here to apply the corrections and visualize the data
-BAL.windOn.test_88
+%Example data for one test:
+BAL.windOn.test_88;
 % example of how to access balance data (adapt the names of the fields of
 % the structure to your data)
 figure
 %plot(BAL.windOn.proponzerodef.AoA,BAL.windOn.proponzerodef.CL,'*b')
-plot(BAL.windOn.test_37.AoA,BAL.windOn.test_37.CL,'*b')
+%plot(BAL.windOn.test_37.AoA,BAL.windOn.test_37.CMpitch,'*b')
+
+%Example longitudinal stability plot for V=40 [m/s], el_def=-10 [deg], J=1.6, aoa=[-5, 0, 5]:
+cm_pitch = [BAL.windOn.test_37.CMpitch,BAL.windOn.test_36.CMpitch,BAL.windOn.test_35.CMpitch];
+aoa = [BAL.windOn.test_37.AoA,BAL.windOn.test_36.AoA,BAL.windOn.test_35.AoA];
+
+plot(aoa, cm_pitch, '-*b')
 
 
